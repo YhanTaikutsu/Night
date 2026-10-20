@@ -14,7 +14,7 @@ canvas{aspect-ratio:16/9;background:#000;cursor:pointer;box-shadow:0 0 0 4px #5b
 p{margin:0;font-size:8px;line-height:1.6;opacity:.75;text-align:center;padding:0 12px}
 </style></head><body>
 <canvas id="c" width="960" height="540"></canvas>
-<div class="pad"><button id="L">◀</button><button id="E">E</button><button id="R">▶</button></div>
+<div class="pad"><button id="L">◀</button><button id="E">E</button><button id="R">▶</button><button id="M" title="Music on/off">♪</button></div>
 <p>◀ ▶ / A D TO WALK · E OR CLICK THE LETTER / FLOWER TO LOOK CLOSER</p>
 <script>
 const cv=document.getElementById('c'),m=cv.getContext('2d');
@@ -35,7 +35,15 @@ let pg=0;const L2=wrap('This is a congratulations for passing your mid-terms my 
 const HB={letter:{x:20,y:134,w:112,h:100,cx:76},flower:{x:352,y:96,w:104,h:138,cx:404},letter2:{x:200,y:136,w:80,h:98,cx:240}};
 function blip(f,d,ty,v){if(!ac)return;const o=ac.createOscillator(),g=ac.createGain();o.type=ty||'square';o.frequency.value=f;g.gain.setValueAtTime(v||.05,ac.currentTime);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+d);o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d)}
 function audio(){if(!ac){try{ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(ac&&ac.state==='suspended')ac.resume()}
-function begin(){audio();scene=1}
+let yt=null,ytOn=true;const YID='y5t1ATKSzOY';
+function ytCmd(f,a){try{yt&&yt.contentWindow.postMessage(JSON.stringify({event:'command',func:f,args:a||[]}),'*')}catch(e){}}
+function music(){if(yt)return;yt=document.createElement('iframe');yt.src='https://www.youtube.com/embed/'+YID+'?autoplay=1&loop=1&playlist='+YID+'&controls=0&enablejsapi=1&playsinline=1';yt.allow='autoplay; encrypted-media';yt.style.cssText='position:fixed;left:0;bottom:0;width:2px;height:2px;opacity:0;pointer-events:none;border:0';
+yt.onload=()=>{[500,1500,3000,6000].forEach(d=>setTimeout(()=>{try{yt.contentWindow.postMessage(JSON.stringify({event:'listening',id:1,channel:'widget'}),'*')}catch(e){}ytCmd('setVolume',[15]);ytCmd(ytOn?'unMute':'mute');ytCmd('playVideo')},d))};document.body.appendChild(yt);addEventListener('message',e=>{if(/youtube/.test(e.origin))ytOK=true});setTimeout(()=>{if(!ytOK)lullaby()},6000)}
+let ytOK=false,fb=false;
+function lullaby(){if(fb||!ac)return;fb=true;const ch=[[262,330,392,523],[220,262,330,440],[175,220,262,349],[196,247,294,392]];let i=0,j=0;(function step(){if(ytOn){const c=ch[i%4];blip(c[j%4],.9,'triangle',.022);if(j%8===0)blip(c[0]/2,2.2,'sine',.03)}j++;if(j%8===0)i++;setTimeout(step,300)})()}
+let bgm=null;
+function localMusic(){try{bgm=new Audio('music.mp3');bgm.loop=true;bgm.volume=.15;bgm.muted=!ytOn;bgm.addEventListener('error',()=>{bgm=null;music()});const p=bgm.play();if(p&&p.catch)p.catch(()=>{bgm=null;music()})}catch(e){music()}}
+function begin(){audio();scene=1;localMusic()}
 function near(){const c=girl.x+24;return c<170?'letter':c>310?'flower':(c>=190&&c<=290)?'letter2':null}
 function open(n){if(view||!n)return;view=lv=n;pg=0;blip(660,.1);setTimeout(()=>blip(880,.15),90)}
 function act(){if(scene===0){begin();return}if(view){if(view==='letter'&&pg<PG.length-1){pg++;blip(520,.06)}else{view=null;blip(440,.08)}return}open(near())}
@@ -43,6 +51,7 @@ addEventListener('keydown',e=>{const q=e.key.toLowerCase();keys[q]=1;if(scene===
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
 [['L','arrowleft'],['R','arrowright']].forEach(([id,q])=>{const el=document.getElementById(id);const dn=e=>{e.preventDefault();audio();keys[q]=1;if(scene===0)begin();if(view==='letter'){if(q==='arrowright'&&pg<PG.length-1)pg++;if(q==='arrowleft'&&pg>0)pg--}},up=e=>{e.preventDefault();keys[q]=0};el.addEventListener('pointerdown',dn);el.addEventListener('pointerup',up);el.addEventListener('pointerleave',up);el.addEventListener('pointercancel',up)});
 document.getElementById('E').addEventListener('pointerdown',e=>{e.preventDefault();audio();act()});
+document.getElementById('M').addEventListener('pointerdown',e=>{e.preventDefault();ytOn=!ytOn;if(bgm)bgm.muted=!ytOn;ytCmd(ytOn?'unMute':'mute');e.currentTarget.style.opacity=ytOn?1:.45});
 cv.addEventListener('pointerdown',e=>{audio();const r=cv.getBoundingClientRect(),px=(e.clientX-r.left)*W/r.width,py=(e.clientY-r.top)*H/r.height;if(scene===0){begin();return}if(view){act();return}
 for(const n in HB){const h=HB[n];if(px>=h.x&&px<=h.x+h.w&&py>=h.y&&py<=h.y+h.h){open(n);return}}});
 // ---------- sprites ----------
